@@ -1,0 +1,147 @@
+# coding: utf-8
+"""
+Author: Sanjay Singh
+Comment:11/03/18 - Initial analysis of  input data, loading, removing header footer 
+       :26/03/18 - Understanding test, training data, data cleaning, removing digits
+	               
+	   :05/04/18 - Version 0.3 - Converting string into digits, TfidfVectorizer
+	   :06/04/18 - Version 0.4 - working with NMF, running model using different parameters e.g initializing with NNDSVD, 
+	                            running model after changing No of iteration from 200 to 300 (200 is default)
+	                          
+	   :12/04/18 - Version 0.4 to 1.0 - added code to print no_top_words for manual test analysis  
+		   
+"""
+# In[95]:
+
+
+# Load input data without Header, Footer and Quotes 
+from sklearn.datasets import fetch_20newsgroups
+#df = fetch_20newsgroups(shuffle=True, random_state=1, subset='train', remove=('headers', 'footers', 'quotes'))
+## Run with full data
+df1 = fetch_20newsgroups(shuffle=True, random_state=1, subset='test', remove=('headers', 'footers', 'quotes'))
+df2 = fetch_20newsgroups(shuffle=True, random_state=1, subset='train', remove=('headers', 'footers', 'quotes'))
+
+
+# In[96]:
+
+
+df_data = df1.data + df2.data
+
+
+# In[97]:
+
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+# In[130]:
+
+
+df1.target_names
+
+
+# In[285]:
+
+
+print(df1.target[154])
+
+
+# In[286]:
+
+
+df1.data[154]
+
+
+# In[250]:
+
+
+from __future__ import print_function
+
+
+# In[134]:
+
+
+from time import time
+
+
+# In[135]:
+
+
+len(df_data)
+
+
+# In[136]:
+
+
+import re
+# s = re.sub("^\d+\s|\s\d+\s|\s\d+$", "", "1 12 204k wah w1h 12w 1wh wh1 12")
+# print(s)
+
+
+# In[137]:
+
+
+# remove digits
+for i in range(0, len(df_data)):
+    df_data[i] = re.sub("^\d+\s|\s\d+\s|\s\d+$", "", df_data[i])
+
+
+# In[139]:
+
+
+# NMF is able to use tf-idf
+tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+t0 = time()
+tfidf = tfidf_vectorizer.fit_transform(df_data)
+print("done in %0.3fs." % (time() - t0))
+
+
+# In[140]:
+
+
+tfidf_feature_names = tfidf_vectorizer.get_feature_names()
+
+
+# In[141]:
+
+
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer;
+
+
+# In[143]:
+
+
+tfidf.shape
+
+
+# In[144]:
+
+
+from sklearn.decomposition import NMF
+no_topics = 20
+
+
+# In[146]:
+
+
+# Run Non-negative matrix factorization # No of iteration = 300, default is 200
+# Run Non-negative matrix factorization # No of iteration default is 200
+nmf = NMF(n_components=no_topics, init = 'nndsvd', max_iter = 200).fit(tfidf)
+t0 = time()
+tfidf = tfidf_vectorizer.fit_transform(df_data)
+print("done in %0.3fs." % (time() - t0))
+
+
+# In[147]:
+
+
+# Displaying and Evaluating Topics 
+def display_topics(model, feature_names, no_top_words):
+    for topic_idx, topic in enumerate(model.components_):
+        print(" Topic %d: " % (topic_idx))
+        print (" ".join([feature_names[i]
+                        for i in topic.argsort()[:-no_top_words - 1:-1]]))
+
+no_top_words = 20
+display_topics(nmf, tfidf_feature_names, no_top_words)
+
